@@ -1,0 +1,40 @@
+---
+  - name: add a user and give sudo permission to the 
+    hosts: all
+    become: true
+    vars_files:
+      - variable.yml
+    tasks:
+      - name: check user
+        command : getend passwd "{{ username }}"
+        register: user_check
+        ignore_errors: true
+
+
+      - name: add user to system
+        user:
+          name: "{{ username }}"
+          state:  present
+          password: "{{ password }}"
+        when: user_check.rc != 0
+
+      - name: add user to sudores.d file  make it super user
+        template:
+          src: upload.txt.j2
+          dest: /etc/sudoers.d/{{username}}
+          mode: 0440
+        when: user_check.rc != 0 
+
+      - name : add some package
+        yum:
+          name: "{{item }}"
+          state: present
+        when: user_check.rc != 0
+        loop:
+          - vim
+          - nano
+      - name: user is present
+        debug:
+          msg: " user is present "
+        when: user_check.rc == 0
+
